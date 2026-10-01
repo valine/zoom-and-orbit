@@ -2,8 +2,8 @@
 """Native orbit with wheel zoom, plus double-right-click selection focus."""
 
 bl_info = {
-    "name": "Orbit Wheel Zoom",
-    "author": "Lukas",
+    "name": "Zoom and Orbit",
+    "author": "Lukas Valine",
     "version": (1, 1, 0),
     "blender": (5, 2, 0),
     "location": "3D View: Middle Mouse + wheel; double Right Mouse to focus",
