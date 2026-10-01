@@ -18,9 +18,16 @@ Hold **Middle Mouse** and move to orbit. While still holding it, scroll to zoom.
 select it and center the view. 
 
 ## Install
-0.a Run `python3 scripts/package.py` to build `dist/orbit_wheel_zoom-1.1.0.zip`
-0.b Download zip from releases
-1. Navigate to Blender's Preferences -> Add-ons
+
+Run `python scripts/package.py` to build the zip file 
+
+**alternatively**
+
+Download zip from releases
+
+
+## Once you have the zip file proceed with these steps
+1. Navigate to Blender's Preferences -> Addons
 2. Click on Install from Disk
 3. Select the ZIP
 4. Enable the Addon
