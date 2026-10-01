@@ -1,5 +1,5 @@
 # Orbit Wheel Zoom
-Zoom and orbit in one fluid mouse gesture
+## Zoom and orbit in one fluid mouse gesture
 
 
 Hold the middle mouse button down to orbit and scroll to zoom at the same time. Your mouse can still register scroll events even when the middle mouse button is held down. This addon takes advantage of that fact, and allows you you to orbit and zoom at the same time.
