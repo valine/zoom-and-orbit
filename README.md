@@ -4,6 +4,8 @@
 
 Hold the middle mouse button down to orbit and scroll to zoom at the same time. Your mouse can still register scroll events even when the middle mouse button is held down. This addon takes advantage of that fact, and allows you you to orbit and zoom at the same time.
 
+This addon also includes an optional align view to object with double right click.
+
 ![Scrolling to zoom while continuously orbiting Suzanne in Blender](docs/media/orbit-wheel-zoom.gif)
 
 Scroll zoom during continuous middle-mouse orbit. [video demo](docs/media/orbit-wheel-zoom.mp4).
