@@ -67,6 +67,7 @@ def event(typ, value='NOTHING', *, shift=False):
 
 
 def setup(name, mode='OBJECT', *, method='CENTER', enabled=True, miss=False, shifted=False):
+    addon._keymaps[1][1].value = 'DOUBLE_CLICK'
     if bpy.context.object is not None and bpy.context.object.mode != 'OBJECT':
         bpy.ops.object.mode_set(mode='OBJECT')
     target.hide_set(mode == 'CURVE')
@@ -121,9 +122,14 @@ def single_checked():
     assert math.isclose(rv.view_distance, 20, rel_tol=1e-5)
     if current['mode'] == 'OBJECT' and not current['miss']:
         assert bpy.context.view_layer.objects.active == target
+    # Blender's event_simulate API cannot produce double-clicks. Dispatch the
+    # second press through the real operator/keymap; test physical double-click
+    # recognition separately with focus_physical.py and an agent-seat mouse.
+    addon._keymaps[1][1].value = 'PRESS'
 
 
 def focused():
+    addon._keymaps[1][1].value = 'DOUBLE_CLICK'
     center = Vector(current['center']) if current['enabled'] and not current['miss'] and not current['shifted'] else Vector((0,0,0))
     assert (rv.view_location-center).length < 1e-4, (list(rv.view_location),list(center))
     if current['method'] == 'CENTER':
@@ -143,7 +149,9 @@ def focused():
             selected = [e for e in elements if e.select]
             assert len(selected) == 1, (mode, len(selected))
         elif mode == 'CURVE':
-            assert sum(p.select_control_point for p in spline.bezier_points) == 1
+            # RNA reads the original curve; flush the edit-mode selection first.
+            bpy.ops.object.mode_set(mode='OBJECT')
+            assert sum(p.select_control_point for p in curve.data.splines[0].bezier_points) == 1
     passed.append(current['name'])
     log(passed=current['name'], center=list(rv.view_location), distance=rv.view_distance)
 
@@ -163,7 +171,7 @@ for name, mode, options in [
     steps += [lambda n=name,m=mode,o=options: setup(n,m,**o), position,
               lambda: event('RIGHTMOUSE','PRESS'), lambda: event('RIGHTMOUSE','RELEASE'),
               single_checked,
-              lambda: event('RIGHTMOUSE','DOUBLE_CLICK',shift=current['shifted']),
+              lambda: event('RIGHTMOUSE','PRESS',shift=current['shifted']),
               lambda: event('RIGHTMOUSE','RELEASE',shift=current['shifted']),
               lambda: None, lambda: None, lambda: None, focused]
 
@@ -176,6 +184,7 @@ def tick():
             return .15
         report = {'ok': True, 'passed': passed, 'blender': bpy.app.version_string}
     except Exception:
+        addon._keymaps[1][1].value = 'DOUBLE_CLICK'
         report = {'ok': False, 'case': current.get('name'), 'error': traceback.format_exc(), 'passed': passed}
     log(**report)
     (OUT/'focus-summary.json').write_text(json.dumps(report,indent=2)+'\n')

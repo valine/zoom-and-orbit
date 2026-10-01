@@ -1,8 +1,11 @@
 # Orbit Wheel Zoom
 
-A Blender 5.2 add-on that lets you scroll to zoom while holding the middle mouse
-button to orbit. It wraps Blender's native orbit operator, retaining native
-turntable/trackball rotation, selection pivots, cursor wrapping, and cancellation.
+A Blender 5.2 add-on for wheel zoom during middle-mouse orbit and double-right-click
+selection focus. It wraps Blender's native navigation and selection operators.
+
+![Scrolling to zoom while continuously orbiting Suzanne in Blender](docs/media/orbit-wheel-zoom.gif)
+
+Scroll zoom during continuous middle-mouse orbit. [Watch the full-resolution video](docs/media/orbit-wheel-zoom.mp4).
 
 ## Use
 
@@ -15,6 +18,19 @@ Zoom during this gesture uses the **view centre**, even if Zoom to Mouse Positio
 is enabled. This avoids an offset jump when combining cursor zoom with Blender's
 cached orbit pivot. Wheel zoom outside the gesture keeps Blender's normal behavior.
 
+**Double-right-click** an object, vertex, edge, face, or curve control point to
+select it and center the view. By default this keeps the current zoom and view
+orientation. Objects use their evaluated geometry bounds; editable elements use
+Blender's native selection-center calculation. The 3D cursor stays where you put it.
+Clicking empty space does not recenter the previous selection.
+
+In Preferences → Add-ons → **Orbit Wheel Zoom**, choose **Frame Selected** instead
+of **Center Only** if you want double-right-click to also zoom to fit. The feature
+can also be disabled there. It is intended for right-click-select keymaps, including
+your Blender 2.7x preset. Single clicks and Shift/Ctrl/Alt selection shortcuts retain
+their regular bindings. It operates in Object, Pose, and applicable Edit modes;
+paint/sculpt strokes and text editing are excluded.
+
 The add-on binds unmodified Middle Mouse in the 3D View. Shift+Middle Mouse pan,
 Ctrl+Middle Mouse zoom, the SpaceMouse, and other editors keep their native bindings.
 It supports the Blender and Blender 2.7x presets. It does not add wheel zoom inside
@@ -23,7 +39,7 @@ navigation in the Industry Compatible preset.
 
 ## Install
 
-1. Run `python3 scripts/package.py` to build `dist/orbit_wheel_zoom-1.0.0.zip`.
+1. Run `python3 scripts/package.py` to build `dist/orbit_wheel_zoom-1.1.0.zip`.
 2. In Blender's Preferences → Add-ons, use the menu's **Install from Disk** command.
 3. Select the ZIP, then enable **Orbit Wheel Zoom** and save preferences if auto-save
    is disabled.
@@ -67,6 +83,15 @@ pivot, automatic depth preference, Escape/right-click cancellation, locked-camer
 movement, Shift/Ctrl navigation, and disabling during an active gesture. A fresh
 process also verified the installed copy and saved enablement. Camera animation
 autokey/undo combinations and additional Blender versions have not been validated.
+
+Selection-focus tests: `tests/focus_smoke.py` checks object geometry centers,
+vertices, edges, faces, curve control points, empty space, preference disabling,
+modified clicks, Frame Selected, preserved zoom/orientation, and cursor restoration.
+Run it with the same factory-startup/event-simulation flags as the orbit tests.
+Blender's simulation API cannot synthesize a double-click, so this suite temporarily
+maps the focus operator to the second press. `tests/focus_physical.py` separately
+checks real double-right-click recognition using an agent-seat mouse; run that
+script without `--enable-event-simulate` and follow its printed coordinate file.
 
 ## License
 

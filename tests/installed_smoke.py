@@ -21,6 +21,7 @@ area = max((a for a in win.screen.areas if a.type == 'VIEW_3D'), key=lambda a: a
 region = next(r for r in area.regions if r.type == 'WINDOW')
 rv = area.spaces.active.region_3d
 report = {'module': orbit_wheel_zoom.__file__,
+          'version': list(orbit_wheel_zoom.bl_info['version']),
           'enabled': addon_utils.check('orbit_wheel_zoom'),
           'keyconfig': bpy.context.window_manager.keyconfigs.active.name,
           'blender': bpy.app.version_string}
@@ -37,6 +38,8 @@ def loaded():
     assert report['enabled'] == (True, True), report
     assert Path(report['module']).resolve() != root / 'orbit_wheel_zoom' / '__init__.py', report
     assert len(orbit_wheel_zoom._keymaps) == 2
+    assert report['version'] == [1, 1, 0]
+    report['focus_method'] = bpy.context.preferences.addons['orbit_wheel_zoom'].preferences.double_click_focus_method
 
 
 def active():

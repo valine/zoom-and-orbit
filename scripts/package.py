@@ -11,4 +11,7 @@ with ZipFile(destination, 'w', ZIP_DEFLATED) as archive:
     archive.write(root / 'orbit_wheel_zoom' / '__init__.py', 'orbit_wheel_zoom/__init__.py')
     archive.write(root / 'LICENSE', 'orbit_wheel_zoom/LICENSE')
     archive.write(root / 'README.md', 'orbit_wheel_zoom/README.md')
+    for media in sorted((root / 'docs' / 'media').glob('*')):
+        if media.is_file():
+            archive.write(media, 'orbit_wheel_zoom/' + media.relative_to(root).as_posix())
 print(destination)

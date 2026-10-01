@@ -41,6 +41,7 @@ before = preferences_snapshot()
 assert 'FINISHED' in bpy.ops.preferences.addon_install(filepath=str(ZIP), overwrite=True)
 module = addon_utils.enable(MODULE, default_set=True, persistent=True)
 assert module is not None and addon_utils.check(MODULE) == (True, True)
+assert module.bl_info['version'] == (1, 1, 0), 'The installed module did not reload to version 1.1.0'
 assert preferences_snapshot() == before, 'Unexpected change to existing input/keymap/add-on settings'
 installed = Path(module.__file__).resolve()
 expected = ROOT / MODULE / '__init__.py'
@@ -49,6 +50,7 @@ assert 'FINISHED' in bpy.ops.wm.save_userpref()
 report = {
     'installed': str(installed),
     'enabled': True,
+    'version': list(module.bl_info['version']),
     'preferences': str(preferences_file),
     'preferences_backup': str(backup) if backup else None,
     'keyconfig': before['keyconfig'],
