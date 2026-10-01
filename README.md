@@ -8,7 +8,7 @@ This addon also includes an optional align view to object with double right clic
 
 ![demo gif](docs/media/orbit-wheel-zoom.gif)
 
-![video demo](docs/media/orbit-wheel-zoom.mp4).
+![video demo](docs/media/orbit-wheel-zoom.mp4)
 
 ## Use
 
@@ -17,16 +17,15 @@ Hold **Middle Mouse** and move to orbit. While still holding it, scroll to zoom.
 **Double-right-click** an object, vertex, edge, face, or curve control point to
 select it and center the view. 
 
-## Install
+## Procure zip file 
 
-Run `python scripts/package.py` to build the zip file 
+Run `python scripts/package.py` to generate zip file 
 
 **alternatively**
 
 Download zip from releases
 
-
-## Once you have the zip file proceed with these steps
+## Install zip file 
 1. Navigate to Blender's Preferences -> Addons
 2. Click on Install from Disk
 3. Select the ZIP
