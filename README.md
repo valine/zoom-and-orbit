@@ -6,7 +6,7 @@ Hold the middle mouse button down to orbit and scroll to zoom at the same time. 
 
 ![Scrolling to zoom while continuously orbiting Suzanne in Blender](docs/media/orbit-wheel-zoom.gif)
 
-Scroll zoom during continuous middle-mouse orbit. [Watch the full-resolution video](docs/media/orbit-wheel-zoom.mp4).
+Scroll zoom during continuous middle-mouse orbit. [video demo](docs/media/orbit-wheel-zoom.mp4).
 
 ## Use
 
