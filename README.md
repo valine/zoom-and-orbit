@@ -1,7 +1,7 @@
 # Orbit Wheel Zoom
 
-A Blender 5.2 add-on for wheel zoom during middle-mouse orbit and double-right-click
-selection focus. It wraps Blender's native navigation and selection operators.
+
+Hold the middle mouse button down to orbit and scroll to zoom at the same time. Your mouse can still register scroll events even when the middle mouse button is held down. This addon takes advantage of that fact, and allows you you to orbit and zoom at the same time.
 
 ![Scrolling to zoom while continuously orbiting Suzanne in Blender](docs/media/orbit-wheel-zoom.gif)
 
