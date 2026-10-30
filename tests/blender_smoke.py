@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""UI integration tests; run with Blender --factory-startup --enable-event-simulate."""
+"""UI integration tests; run with Blender --factory-startup --enable-event-simulate.
+
+Append -- --default-keymap to test the modern keymap instead of Blender 27x.
+"""
 import json
 import math
 from pathlib import Path
@@ -11,7 +14,9 @@ from mathutils import Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'test-results'
-OUT.mkdir(exist_ok=True)
+if '--default-keymap' in sys.argv:
+    OUT = OUT / 'default-keymap'
+OUT.mkdir(parents=True, exist_ok=True)
 LOG = OUT / 'smoke.jsonl'
 LOG.write_text('')
 sys.path.insert(0, str(ROOT))
@@ -23,9 +28,10 @@ def log(**data):
         stream.write(json.dumps(data) + '\n')
 
 
-legacy = next(Path(p) / 'Blender_27x.py' for p in bpy.utils.preset_paths('keyconfig')
-              if (Path(p) / 'Blender_27x.py').exists())
-assert bpy.utils.keyconfig_set(str(legacy))
+if '--default-keymap' not in sys.argv:
+    legacy = next(Path(p) / 'Blender_27x.py' for p in bpy.utils.preset_paths('keyconfig')
+                  if (Path(p) / 'Blender_27x.py').exists())
+    assert bpy.utils.keyconfig_set(str(legacy))
 addon.register()
 win = bpy.context.window
 area = next(a for a in win.screen.areas if a.type == 'VIEW_3D')
@@ -49,15 +55,18 @@ def snapshot():
 def event(typ, value='NOTHING', dx=0, dy=0, **mods):
     win.event_simulate(type=typ, value=value,
                        x=region.x + int(region.width * .62) + dx,
-                       y=region.y + int(region.height * .55) + dy, **mods)
+                       y=region.y + int(region.height * .55) + dy,
+                       **({'shift': current.get('pan', False)} | mods))
 
 
 def setup(name, *, selected=False, method='TURNTABLE', perspective='PERSP',
           inverted=False, cursor=False, native=False, end='MIDDLEMOUSE',
-          depth=False, camera=False):
+          depth=False, camera=False, pan=False):
     current.clear()
-    current.update(name=name, native=native, inverted=inverted, end=end, camera=camera)
-    addon._keymaps[0][1].active = not native
+    current.update(name=name, native=native, inverted=inverted, end=end, camera=camera, pan=pan)
+    for _, item in addon._keymaps:
+        if item.idname == addon.VIEW3D_OT_orbit_wheel_zoom.bl_idname:
+            item.active = not native
     inputs.use_rotate_around_active = selected
     inputs.use_mouse_depth_navigate = depth
     inputs.use_zoom_to_mouse = cursor
@@ -73,9 +82,21 @@ def setup(name, *, selected=False, method='TURNTABLE', perspective='PERSP',
     log(case=name, keyconfig=bpy.context.window_manager.keyconfigs.active.name)
 
 
-def orbit_started():
+def start_motion():
+    # Locked-camera navigation synchronizes the view to the camera on invocation.
+    current['started'] = snapshot()
+    event('MOUSEMOVE', dx=35, dy=20)
+
+
+def navigation_started():
     s = snapshot()
-    assert Quaternion(s['rotation']).rotation_difference(initial_rotation).angle > .001, s
+    if current['pan']:
+        assert 'VIEW3D_OT_move' in s['operators'], s
+        assert Quaternion(s['rotation']).rotation_difference(
+            Quaternion(current['started']['rotation'])).angle < .001, s
+        assert (Vector(s['location']) - Vector(current['started']['location'])).length > .01, s
+    else:
+        assert Quaternion(s['rotation']).rotation_difference(initial_rotation).angle > .001, s
     has_wrapper = 'VIEW3D_OT_orbit_wheel_zoom' in s['operators']
     assert has_wrapper != current['native'], s
     current['before'] = s
@@ -92,8 +113,13 @@ def zoomed():
 def continued():
     s = snapshot()
     assert math.isclose(s['distance'], current['zoomed']['distance'], rel_tol=2e-5), s
-    assert Quaternion(s['rotation']).rotation_difference(
-        Quaternion(current['zoomed']['rotation'])).angle > .0001, s
+    rotation_delta = Quaternion(s['rotation']).rotation_difference(
+        Quaternion(current['zoomed']['rotation'])).angle
+    if current['pan']:
+        assert rotation_delta < .001, s
+        assert (Vector(s['location']) - Vector(current['zoomed']['location'])).length > 1e-5, s
+    else:
+        assert rotation_delta > .0001, s
     assert (Vector(s['location']) - Vector(current['zoomed']['location'])).length < .1, s
 
 
@@ -109,7 +135,7 @@ def finish_gesture():
 def finished():
     s = snapshot()
     assert not any(name in s['operators'] for name in
-                   ('VIEW3D_OT_rotate', 'VIEW3D_OT_orbit_wheel_zoom')), s
+                   ('VIEW3D_OT_rotate', 'VIEW3D_OT_move', 'VIEW3D_OT_orbit_wheel_zoom')), s
     if current['end'] in {'ESC', 'RIGHTMOUSE'}:
         assert math.isclose(s['distance'], current['initial']['distance'], rel_tol=2e-5), s
         assert (Vector(s['location']) - Vector(current['initial']['location'])).length < 1e-5, s
@@ -122,6 +148,8 @@ def idle_checked():
     s = snapshot()
     assert Quaternion(s['rotation']).rotation_difference(
         Quaternion(current['finished']['rotation'])).angle < .001, s
+    assert (Vector(s['location']) - Vector(current['finished']['location'])).length < 1e-5, s
+    assert math.isclose(s['distance'], current['finished']['distance'], rel_tol=2e-5), s
     passed.append(current['name'])
     log(passed=current['name'], before=current['before'], zoomed=current['zoomed'], after=s)
 
@@ -129,6 +157,15 @@ def idle_checked():
 cases = [
     ('native_baseline', {'native': True}),
     ('turntable', {}),
+    ('pan_native_baseline', {'pan': True, 'native': True}),
+    ('pan', {'pan': True}),
+    ('pan_inverted_wheel', {'pan': True, 'inverted': True}),
+    ('pan_orthographic', {'pan': True, 'perspective': 'ORTHO'}),
+    ('pan_cursor_preference', {'pan': True, 'cursor': True}),
+    ('pan_auto_depth', {'pan': True, 'depth': True}),
+    ('pan_escape', {'pan': True, 'end': 'ESC'}),
+    ('pan_right_click', {'pan': True, 'end': 'RIGHTMOUSE'}),
+    ('pan_locked_camera', {'pan': True, 'camera': True}),
     ('inverted_wheel', {'inverted': True}),
     ('selected_trackball', {'selected': True, 'method': 'TRACKBALL'}),
     ('selected_orthographic', {'selected': True, 'perspective': 'ORTHO'}),
@@ -143,7 +180,7 @@ steps += [lambda: event('ESC', 'PRESS'), lambda: event('ESC', 'RELEASE'), lambda
 for name, options in cases:
     steps += [lambda n=name, o=options: setup(n, **o),
               lambda: event('MIDDLEMOUSE', 'PRESS'),
-              lambda: event('MOUSEMOVE', dx=35, dy=20), orbit_started,
+              start_motion, navigation_started,
               lambda: event('WHEELUPMOUSE', 'PRESS', dx=35, dy=20), zoomed,
               lambda: event('WHEELDOWNMOUSE', 'PRESS', dx=35, dy=20), zoom_reversed,
               lambda: event('WHEELUPMOUSE', 'PRESS', dx=35, dy=20), zoomed,
@@ -165,9 +202,7 @@ def modifier_checked(expected):
     log(passed=expected)
 
 
-steps += [lambda: modifier_start(shift=True),
-          lambda: modifier_checked('VIEW3D_OT_move'), lambda: None,
-          lambda: modifier_start(ctrl=True),
+steps += [lambda: modifier_start(ctrl=True),
           lambda: modifier_checked('VIEW3D_OT_zoom'), lambda: None]
 
 
@@ -178,17 +213,20 @@ def unregister_active():
 
 def unregister_checked():
     names = snapshot()['operators']
-    assert not any(name in names for name in ('VIEW3D_OT_orbit_wheel_zoom', 'VIEW3D_OT_rotate')), names
+    assert not any(name in names for name in
+                   ('VIEW3D_OT_orbit_wheel_zoom', 'VIEW3D_OT_rotate', 'VIEW3D_OT_move')), names
     assert not addon._keymaps
     addon.register()
-    assert len(addon._keymaps) == 2
-    passed.append('disable_during_orbit_and_reenable')
+    assert len(addon._keymaps) == 3
+    passed.append(current['name'])
     log(passed=passed[-1])
 
 
-steps += [lambda: setup('unregister'), lambda: event('MIDDLEMOUSE', 'PRESS'),
-          unregister_active, lambda: event('MIDDLEMOUSE', 'RELEASE'),
-          lambda: None, unregister_checked]
+for pan in (False, True):
+    steps += [lambda p=pan: setup('disable_during_' + ('pan' if p else 'orbit') + '_and_reenable', pan=p),
+              lambda: event('MIDDLEMOUSE', 'PRESS'),
+              unregister_active, lambda: event('MIDDLEMOUSE', 'RELEASE'),
+              lambda: None, unregister_checked]
 
 
 def tick():

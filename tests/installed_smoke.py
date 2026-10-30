@@ -37,8 +37,8 @@ def event(typ, value='NOTHING', dx=0):
 def loaded():
     assert report['enabled'] == (True, True), report
     assert Path(report['module']).resolve() != root / 'orbit_wheel_zoom' / '__init__.py', report
-    assert len(orbit_wheel_zoom._keymaps) == 2
-    assert report['version'] == [1, 1, 0]
+    assert len(orbit_wheel_zoom._keymaps) == 3
+    assert report['version'] == [1, 2, 0]
     report['focus_method'] = bpy.context.preferences.addons['orbit_wheel_zoom'].preferences.double_click_focus_method
 
 

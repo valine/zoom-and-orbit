@@ -27,6 +27,7 @@ def main():
         '3. Select the ZIP and enable Zoom and Orbit if it is not already checked.\n'
         '   Save Preferences if preference auto-save is off.\n\n'
         'Hold Middle Mouse and move to orbit; scroll while holding it to zoom.\n'
+        'Hold Shift + Middle Mouse and move to pan; scroll while holding them to zoom.\n'
         'Double-right-click to select and center. Options are in Preferences.\n\n'
         'Documentation, source, and updates:\n'
         'https://github.com/valine/zoom-and-orbit\n'

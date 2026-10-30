@@ -13,7 +13,7 @@ import addon_utils
 import bpy
 
 ROOT = Path(__file__).resolve().parents[1]
-ZIP = ROOT / 'dist' / 'orbit_wheel_zoom-1.1.0.zip'
+ZIP = ROOT / 'dist' / 'orbit_wheel_zoom-1.2.0.zip'
 MODULE = 'orbit_wheel_zoom'
 assert bpy.app.version >= (5, 2, 0), 'Blender 5.2 or newer is required'
 assert ZIP.is_file(), 'Run python3 scripts/package.py first'
@@ -41,7 +41,7 @@ before = preferences_snapshot()
 assert 'FINISHED' in bpy.ops.preferences.addon_install(filepath=str(ZIP), overwrite=True)
 module = addon_utils.enable(MODULE, default_set=True, persistent=True)
 assert module is not None and addon_utils.check(MODULE) == (True, True)
-assert module.bl_info['version'] == (1, 1, 0), 'The installed module did not reload to version 1.1.0'
+assert module.bl_info['version'] == (1, 2, 0), 'The installed module did not reload to version 1.2.0'
 assert preferences_snapshot() == before, 'Unexpected change to existing input/keymap/add-on settings'
 installed = Path(module.__file__).resolve()
 expected = ROOT / MODULE / '__init__.py'

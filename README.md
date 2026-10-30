@@ -14,6 +14,9 @@ This addon also includes an optional align view to object with double right clic
 
 Hold **Middle Mouse** and move to orbit. While still holding it, scroll to zoom.
 
+Hold **Shift + Middle Mouse** and move to pan. While still holding them, scroll to zoom.
+Zoom during either gesture uses the view centre and follows Blender's wheel direction preference.
+
 **Double-right-click** an object, vertex, edge, face, or curve control point to
 select it and center the view. 
 

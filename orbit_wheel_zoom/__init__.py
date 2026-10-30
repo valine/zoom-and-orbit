@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""Native orbit with wheel zoom, plus double-right-click selection focus."""
+"""Native orbit and pan with wheel zoom, plus double-right-click selection focus."""
 
 bl_info = {
     "name": "Zoom and Orbit",
     "author": "Lukas Valine",
-    "version": (1, 1, 0),
+    "version": (1, 2, 0),
     "blender": (5, 2, 0),
     "location": "3D View: Middle Mouse + wheel; double Right Mouse to focus",
-    "description": "Wheel zoom during orbit and double-right-click to select and center",
+    "description": "Wheel zoom during orbit or pan and double-right-click to select and center",
     "category": "3D View",
 }
 
@@ -21,25 +21,28 @@ _generation = None
 
 class VIEW3D_OT_orbit_wheel_zoom(bpy.types.Operator):
     bl_idname = "view3d.orbit_wheel_zoom"
-    bl_label = "Orbit with Wheel Zoom"
-    bl_description = "Orbit normally; scroll while holding Middle Mouse to zoom"
+    bl_label = "Orbit or Pan with Wheel Zoom"
+    bl_description = "Orbit with Middle Mouse or pan with Shift-Middle Mouse; scroll during either to zoom"
     bl_options = {"INTERNAL"}
 
     @classmethod
     def poll(cls, context):
         return (context.area is not None and context.area.type == 'VIEW_3D'
-                and context.region is not None and context.region.type == 'WINDOW'
-                and bpy.ops.view3d.rotate.poll())
+                and context.region is not None and context.region.type == 'WINDOW')
 
     def invoke(self, context, event):
         if event.type != 'MIDDLEMOUSE' or event.value != 'PRESS':
+            return {'CANCELLED', 'PASS_THROUGH'}
+
+        navigation = bpy.ops.view3d.move if event.shift else bpy.ops.view3d.rotate
+        if not navigation.poll():
             return {'CANCELLED', 'PASS_THROUGH'}
 
         self._timer = None
         self._generation = _generation
         self._window_manager = context.window_manager
         before = {op.as_pointer() for op in context.window.modal_operators}
-        result = bpy.ops.view3d.rotate('INVOKE_DEFAULT', use_cursor_init=True)
+        result = navigation('INVOKE_DEFAULT', use_cursor_init=True)
         if 'RUNNING_MODAL' not in result:
             return result
 
@@ -51,8 +54,8 @@ class VIEW3D_OT_orbit_wheel_zoom(bpy.types.Operator):
 
         self._native_pointer = native.as_pointer()
         self._native_idname = native.bl_idname
-        # Register AFTER native orbit: modal handlers are visited newest first.
-        # Native orbit owns cursor grabbing; this wrapper must not grab it again.
+        # Register AFTER native navigation: modal handlers are visited newest first.
+        # Native navigation owns cursor grabbing; this wrapper must not grab it again.
         context.window_manager.modal_handler_add(self)
         self._timer = context.window_manager.event_timer_add(0.2, window=context.window)
         return {'RUNNING_MODAL'}
@@ -67,7 +70,7 @@ class VIEW3D_OT_orbit_wheel_zoom(bpy.types.Operator):
 
     def _finish(self):
         self._cleanup()
-        # Native orbit must also receive its release/cancellation event.
+        # Native navigation must also receive its release/cancellation event.
         return {'FINISHED', 'PASS_THROUGH'}
 
     def modal(self, context, event):
@@ -83,8 +86,8 @@ class VIEW3D_OT_orbit_wheel_zoom(bpy.types.Operator):
                 or (event.type == 'ESC' and event.value == 'PRESS')):
             return self._finish()
 
-        # A customized modal keymap may switch the native operator to pan/drag-zoom.
-        # Leave wheel handling to that operator until orbit resumes.
+        # A customized modal keymap may switch the native navigation operator.
+        # Leave wheel handling to that operator until the original mode resumes.
         if (native.bl_idname == self._native_idname
                 and event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}
                 and event.value == 'PRESS'):
@@ -92,12 +95,12 @@ class VIEW3D_OT_orbit_wheel_zoom(bpy.types.Operator):
                 delta = 1 if event.type == 'WHEELUPMOUSE' else -1
                 if context.preferences.inputs.invert_zoom_wheel:
                     delta = -delta
-                # Cursor-directed zoom changes the offset that native orbit caches.
+                # Cursor-directed zoom changes the offset that native navigation caches.
                 # Centre zoom preserves that state, including selection/depth pivots.
                 bpy.ops.view3d.zoom('EXEC_DEFAULT', delta=delta, use_cursor_init=False)
             return {'RUNNING_MODAL'}
 
-        # PASS_THROUGH alone keeps this handler alive AND reaches native orbit.
+        # PASS_THROUGH alone keeps this handler alive AND reaches native navigation.
         # Combining it with RUNNING_MODAL stops subsequent modal handlers in Blender.
         return {'PASS_THROUGH'}
 
@@ -200,7 +203,8 @@ class OrbitWheelZoomPreferences(bpy.types.AddonPreferences):
     def draw(self, context):
         layout = self.layout
         layout.label(text="Hold Middle Mouse to orbit, then scroll to zoom.")
-        layout.label(text="Zoom during orbit uses the view centre.")
+        layout.label(text="Hold Shift-Middle Mouse to pan, then scroll to zoom.")
+        layout.label(text="Zoom during orbit or pan uses the view centre.")
         layout.label(text="Wheel direction follows Blender's navigation preferences.")
         layout.separator()
         layout.prop(self, "double_right_click_focus")
@@ -223,6 +227,9 @@ def register():
         keymap = keyconfig.keymaps.new(name='3D View', space_type='VIEW_3D')
         item = keymap.keymap_items.new(VIEW3D_OT_orbit_wheel_zoom.bl_idname,
                                      'MIDDLEMOUSE', 'PRESS')
+        _keymaps.append((keymap, item))
+        item = keymap.keymap_items.new(VIEW3D_OT_orbit_wheel_zoom.bl_idname,
+                                     'MIDDLEMOUSE', 'PRESS', shift=True)
         _keymaps.append((keymap, item))
         item = keymap.keymap_items.new(VIEW3D_OT_orbit_wheel_select_and_center.bl_idname,
                                      'RIGHTMOUSE', 'DOUBLE_CLICK')
